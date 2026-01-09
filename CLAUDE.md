@@ -45,7 +45,7 @@ uv run streamlit run app.py --server.fileWatcherType=none
 ```
 
 ### Activity Debug JSON
-The app automatically writes all SDK activities to `/tmp/activities_debug.json` during message exchanges. This file contains:
+When `DEBUG_MODE=true` in `.env`, the app writes all SDK activities to a debug JSON file. This file contains:
 - Full activity types received from Copilot Studio
 - Channel data and stream types
 - Entity information (citations, claims)
@@ -53,15 +53,20 @@ The app automatically writes all SDK activities to `/tmp/activities_debug.json` 
 - Chain-of-thought reasoning data
 
 ```bash
-# Watch debug file in real-time
-tail -f /tmp/activities_debug.json
+# Enable debug mode in .env
+DEBUG_MODE=true
+
+# Watch debug file in real-time (default location in system temp dir)
+tail -f "$(python3 -c 'import tempfile; print(tempfile.gettempdir())')/activities_debug.json"
 
 # Pretty-print the debug file
-cat /tmp/activities_debug.json | python -m json.tool
+cat "$(python3 -c 'import tempfile; print(tempfile.gettempdir())')/activities_debug.json" | python -m json.tool
 
-# Search for specific activity types
-cat /tmp/activities_debug.json | python -m json.tool | grep -A 5 "type"
+# Or set a custom debug file location
+DEBUG_FILE=/path/to/your/debug.json
 ```
+
+**Security Note:** Debug files are created with restrictive permissions (0o600 - owner read/write only) and are disabled by default in production.
 
 ### Common Issues
 
@@ -91,6 +96,12 @@ Copy `.env.example` to `.env` and configure:
 - `COPILOT_AGENT_IDENTIFIER` - Agent schema name from the same location
 - `AZURE_TENANT_ID` - Your Azure tenant ID
 - `AZURE_APP_CLIENT_ID` - Your app registration client ID (must have SPA redirect to `http://localhost:8501` and `CopilotStudio.Copilots.Invoke` API permission)
+
+Optional configuration:
+- `DEBUG_MODE` - Set to `true` to enable debug JSON output (default: `false`)
+- `DEBUG_FILE` - Custom path for debug output (default: system temp directory)
+
+The app validates all required environment variables at startup and shows helpful error messages if any are missing.
 
 ## Architecture
 
@@ -147,6 +158,14 @@ The SDK yields various `ActivityTypes`:
 - `st.session_state.client` - `CopilotStudioClient` instance (persisted across reruns to maintain conversation_id)
 - New conversation button clears both and triggers rerun
 
+## Security Features
+
+- **XSS Protection:** All HTML content is sanitized using `bleach` with a whitelist of safe tags before rendering
+- **Error Handling:** Comprehensive try-catch blocks around all API calls with user-friendly error messages
+- **Timeout Protection:** 30-second timeout for connections, 5-minute timeout for responses
+- **Environment Validation:** Required configuration is validated at startup with clear error messages
+- **Debug Security:** Debug output is disabled by default and uses restrictive file permissions when enabled
+
 ## Key Dependencies
 
 - `streamlit` - Web UI framework
@@ -155,3 +174,5 @@ The SDK yields various `ActivityTypes`:
 - `microsoft-agents-copilotstudio-client` - Copilot Studio SDK
 - `microsoft-agents-activity` - Activity protocol types
 - `aiohttp` - Async HTTP (SDK dependency)
+- `bleach` - HTML sanitization for XSS protection
+- `watchdog` - File watching for hot reload
