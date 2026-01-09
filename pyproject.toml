@@ -1,0 +1,19 @@
+[project]
+name = "streamlit-mcs"
+version = "0.1.0"
+description = "Web chat interface for Microsoft Copilot Studio agents"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "streamlit>=1.32.0",
+    "streamlit-msal",
+    "python-dotenv",
+    "msal",
+    "aiohttp",
+    "microsoft-agents-activity",
+    "microsoft-agents-copilotstudio-client",
+    "watchdog>=2.1.5",
+]
+
+[project.scripts]
+app = "streamlit run app.py"
