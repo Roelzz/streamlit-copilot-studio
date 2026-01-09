@@ -155,6 +155,8 @@ class CopilotStudioClient:
             tuple[str, any]: (type, content) where type is:
                 - 'status': Informative messages like "Generating plan..."
                 - 'content': Actual response content chunks
+                - 'adaptive_card': Adaptive Card JSON content
+                - 'attachment': Other attachment types
                 - 'suggestion': Suggested actions
                 - 'citations': Dict mapping citation IDs to metadata (url, title)
         """
@@ -257,6 +259,30 @@ class CopilotStudioClient:
                         yield ('content', reply.text)
 
             elif reply.type == ActivityTypes.message:
+                # Process attachments (Adaptive Cards, etc.)
+                attachments = getattr(reply, 'attachments', None) or []
+                for attachment in attachments:
+                    # Handle both dict and object forms
+                    if hasattr(attachment, '__dict__'):
+                        att_dict = vars(attachment)
+                    elif isinstance(attachment, dict):
+                        att_dict = attachment
+                    else:
+                        continue
+
+                    content_type = att_dict.get('contentType') or att_dict.get('content_type') or ''
+                    content = att_dict.get('content') or att_dict.get('Content')
+
+                    # Adaptive Cards
+                    if 'adaptive' in content_type.lower() and content:
+                        yield ('adaptive_card', content)
+                    # Other attachment types
+                    elif content:
+                        yield ('attachment', {
+                            'type': content_type,
+                            'content': content
+                        })
+
                 # Extract citation metadata from entities (schema.org Claim objects)
                 entities = getattr(reply, 'entities', None) or []
                 citation_map = {}

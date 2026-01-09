@@ -126,6 +126,35 @@ def main():
             if msg["role"] == "assistant":
                 sanitized_content = sanitize_html(msg["content"])
                 st.markdown(sanitized_content, unsafe_allow_html=True)
+
+                # Display adaptive cards if present
+                if "adaptive_cards" in msg and msg["adaptive_cards"]:
+                    import json
+                    for idx, card in enumerate(msg["adaptive_cards"]):
+                        with st.expander(f"📋 Adaptive Card {idx + 1}", expanded=False):
+                            # Display card as formatted JSON
+                            st.json(card)
+
+                            # Try to render some basic elements
+                            if isinstance(card, dict):
+                                card_type = card.get('type', '')
+                                if card_type == 'AdaptiveCard':
+                                    body = card.get('body', [])
+                                    for element in body:
+                                        elem_type = element.get('type', '')
+                                        if elem_type == 'TextBlock':
+                                            text = element.get('text', '')
+                                            weight = element.get('weight', 'default')
+
+                                            # Apply basic formatting
+                                            if weight == 'bolder':
+                                                st.markdown(f"**{text}**")
+                                            else:
+                                                st.markdown(text)
+                                        elif elem_type == 'Image':
+                                            url = element.get('url', '')
+                                            if url:
+                                                st.image(url)
             else:
                 # User messages should be plain text only
                 st.markdown(msg["content"])
@@ -150,6 +179,7 @@ def main():
                 citation_metadata = {}
                 search_results = []  # Collect search results by index
                 thoughts = []  # Collect chain-of-thought
+                adaptive_cards = []  # Collect adaptive cards
                 got_streaming = False
 
                 try:
@@ -198,6 +228,12 @@ def main():
                                                 cite_info['title'] = sr.get('title', '')
                                             break
                             citation_metadata.update(msg_content)
+                        elif msg_type == 'adaptive_card':
+                            # Collect adaptive cards
+                            adaptive_cards.append(msg_content)
+                        elif msg_type == 'attachment':
+                            # Handle other attachments
+                            pass  # Could expand this later
                         elif msg_type == 'suggestion':
                             suggestions = msg_content
 
@@ -220,30 +256,32 @@ def main():
                     if citations:
                         cleaned_text += format_references_html(citations)
 
-                    return cleaned_text, citations, suggestions
+                    return cleaned_text, citations, suggestions, adaptive_cards
 
                 except Exception as e:
                     status_placeholder.empty()
                     error_msg = f"Error during conversation: {str(e)}"
                     st.error(error_msg)
-                    return f"Sorry, I encountered an error while processing your request. Please try again.", {}, None
+                    return f"Sorry, I encountered an error while processing your request. Please try again.", {}, None, []
 
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
                 # Add timeout protection (5 minutes max)
-                response, citations, suggestions = loop.run_until_complete(
+                response, citations, suggestions, adaptive_cards = loop.run_until_complete(
                     asyncio.wait_for(process_response(), timeout=300)
                 )
             except asyncio.TimeoutError:
                 response = "Sorry, the request timed out. The agent took too long to respond."
                 citations = {}
                 suggestions = None
+                adaptive_cards = []
                 st.error("Please try again with a simpler question or start a new conversation.")
             except Exception as e:
                 response = f"Sorry, an unexpected error occurred: {str(e)}"
                 citations = {}
                 suggestions = None
+                adaptive_cards = []
                 st.error("If this error persists, try starting a new conversation.")
             finally:
                 loop.close()
@@ -253,12 +291,46 @@ def main():
             sanitized_response = sanitize_html(response)
             content_placeholder.markdown(sanitized_response, unsafe_allow_html=True)
 
+            # Render adaptive cards if any
+            if adaptive_cards:
+                import json
+                for idx, card in enumerate(adaptive_cards):
+                    with st.expander(f"📋 Adaptive Card {idx + 1}", expanded=True):
+                        # Display card as formatted JSON
+                        st.json(card)
+
+                        # Try to render some basic elements
+                        if isinstance(card, dict):
+                            card_type = card.get('type', '')
+                            if card_type == 'AdaptiveCard':
+                                body = card.get('body', [])
+                                for element in body:
+                                    elem_type = element.get('type', '')
+                                    if elem_type == 'TextBlock':
+                                        text = element.get('text', '')
+                                        size = element.get('size', 'default')
+                                        weight = element.get('weight', 'default')
+
+                                        # Apply basic formatting
+                                        if weight == 'bolder':
+                                            st.markdown(f"**{text}**")
+                                        else:
+                                            st.markdown(text)
+                                    elif elem_type == 'Image':
+                                        url = element.get('url', '')
+                                        if url:
+                                            st.image(url)
+
             # Show suggestions if any
             if suggestions:
                 st.caption(f"**Suggestions:** {suggestions}")
 
-        # Store response with HTML citations for history
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        # Store response with HTML citations and adaptive cards for history
+        st.session_state.messages.append({
+            "role": "assistant",
+            "content": response,
+            "adaptive_cards": adaptive_cards if adaptive_cards else []
+        })
 
 
 if __name__ == "__main__":
