@@ -261,6 +261,11 @@ class CopilotStudioClient:
             elif reply.type == ActivityTypes.message:
                 # Process attachments (Adaptive Cards, etc.)
                 attachments = getattr(reply, 'attachments', None) or []
+
+                # Debug: yield info about attachments
+                if attachments:
+                    yield ('status', f'Received {len(attachments)} attachment(s)')
+
                 for attachment in attachments:
                     # Handle both dict and object forms
                     if hasattr(attachment, '__dict__'):
