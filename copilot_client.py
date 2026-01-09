@@ -278,15 +278,19 @@ class CopilotStudioClient:
                     content_type = att_dict.get('contentType') or att_dict.get('content_type') or ''
                     content = att_dict.get('content') or att_dict.get('Content')
 
-                    # Adaptive Cards
-                    if 'adaptive' in content_type.lower() and content:
-                        yield ('adaptive_card', content)
-                    # Other attachment types
-                    elif content:
-                        yield ('attachment', {
-                            'type': content_type,
-                            'content': content
-                        })
+                    # Debug: show what we received
+                    yield ('status', f'Attachment type: {content_type}, has content: {content is not None}')
+
+                    # Adaptive Cards (check for both "adaptive" and "application/vnd.microsoft.card.adaptive")
+                    if content:
+                        if 'adaptive' in content_type.lower() or 'card' in content_type.lower():
+                            yield ('adaptive_card', content)
+                        # Other attachment types
+                        else:
+                            yield ('attachment', {
+                                'type': content_type,
+                                'content': content
+                            })
 
                 # Extract citation metadata from entities (schema.org Claim objects)
                 entities = getattr(reply, 'entities', None) or []
