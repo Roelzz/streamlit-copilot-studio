@@ -13,6 +13,109 @@ from copilot_client import CopilotStudioClient, clean_citations, format_referenc
 
 load_dotenv()
 
+
+def render_adaptive_card_element(element, depth=0):
+    """Recursively render an adaptive card element."""
+    if not isinstance(element, dict):
+        return
+
+    elem_type = element.get('type', '')
+
+    if elem_type == 'TextBlock':
+        text = element.get('text', '')
+        weight = element.get('weight', 'default')
+        size = element.get('size', 'default')
+        horizontal_alignment = element.get('horizontalAlignment', 'left')
+        is_subtle = element.get('isSubtle', False)
+
+        # Apply formatting
+        if not text:
+            return
+
+        # Size mapping
+        size_map = {
+            'Small': '0.9em',
+            'Default': '1em',
+            'Medium': '1.2em',
+            'Large': '1.5em',
+            'ExtraLarge': '2em'
+        }
+        font_size = size_map.get(size, '1em')
+
+        # Build markdown with HTML styling
+        style = f"font-size: {font_size};"
+        if horizontal_alignment.lower() == 'center':
+            style += " text-align: center;"
+        elif horizontal_alignment.lower() == 'right':
+            style += " text-align: right;"
+        if is_subtle:
+            style += " opacity: 0.7;"
+
+        if weight == 'Bolder' or weight == 'bolder':
+            st.markdown(f'<div style="{style}"><strong>{text}</strong></div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div style="{style}">{text}</div>', unsafe_allow_html=True)
+
+    elif elem_type == 'Image':
+        url = element.get('url', '')
+        alt_text = element.get('altText', '')
+        size = element.get('size', 'Auto')
+
+        if url:
+            # Size mapping for images
+            if size == 'Small':
+                st.image(url, width=80, caption=alt_text if alt_text else None)
+            elif size == 'Medium':
+                st.image(url, width=120, caption=alt_text if alt_text else None)
+            elif size == 'Large':
+                st.image(url, width=200, caption=alt_text if alt_text else None)
+            else:  # Auto, Stretch
+                st.image(url, caption=alt_text if alt_text else None)
+
+    elif elem_type == 'Container':
+        items = element.get('items', [])
+        # Render container items in a styled div
+        st.markdown('<div style="padding: 10px; margin: 5px 0;">', unsafe_allow_html=True)
+        for item in items:
+            render_adaptive_card_element(item, depth + 1)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    elif elem_type == 'ColumnSet':
+        columns = element.get('columns', [])
+        if columns:
+            cols = st.columns(len(columns))
+            for idx, column in enumerate(columns):
+                with cols[idx]:
+                    items = column.get('items', [])
+                    for item in items:
+                        render_adaptive_card_element(item, depth + 1)
+
+    elif elem_type == 'ProgressBar':
+        # Simple progress bar representation
+        st.markdown('<div style="background: #e0e0e0; height: 4px; border-radius: 2px; margin: 10px 0;"><div style="background: #1976d2; height: 4px; width: 60%; border-radius: 2px;"></div></div>', unsafe_allow_html=True)
+
+    elif elem_type == 'ActionSet':
+        actions = element.get('actions', [])
+        horizontal_alignment = element.get('horizontalAlignment', 'left')
+
+        if actions:
+            # Create button layout
+            align_style = ""
+            if horizontal_alignment.lower() == 'center':
+                align_style = "text-align: center;"
+            elif horizontal_alignment.lower() == 'right':
+                align_style = "text-align: right;"
+
+            st.markdown(f'<div style="margin: 10px 0; {align_style}">', unsafe_allow_html=True)
+            button_html = ""
+            for action in actions:
+                title = action.get('title', '')
+                action_type = action.get('type', '')
+                if title:
+                    button_html += f'<button style="margin: 0 5px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer;">{title}</button>'
+            st.markdown(button_html, unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
 # Validate required environment variables at startup
 REQUIRED_ENV_VARS = {
     "COPILOT_ENVIRONMENT_ID": "Copilot Studio environment ID",
@@ -142,27 +245,19 @@ def main():
                                 with st.expander("View Raw HTML", expanded=False):
                                     st.code(card, language="html")
                             elif isinstance(card, dict):
-                                # It's JSON - try to render as Adaptive Card
+                                # It's JSON - render as Adaptive Card
                                 card_type = card.get('type', '')
                                 if card_type == 'AdaptiveCard':
+                                    # Render card with a styled container
+                                    st.markdown('<div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">', unsafe_allow_html=True)
+
                                     body = card.get('body', [])
                                     for element in body:
-                                        elem_type = element.get('type', '')
-                                        if elem_type == 'TextBlock':
-                                            text = element.get('text', '')
-                                            weight = element.get('weight', 'default')
+                                        render_adaptive_card_element(element)
 
-                                            # Apply basic formatting
-                                            if weight == 'bolder':
-                                                st.markdown(f"**{text}**")
-                                            else:
-                                                st.markdown(text)
-                                        elif elem_type == 'Image':
-                                            url = element.get('url', '')
-                                            if url:
-                                                st.image(url)
+                                    st.markdown('</div>', unsafe_allow_html=True)
 
-                                # Show JSON structure
+                                # Show JSON structure in collapsible section
                                 with st.expander("View JSON Structure", expanded=False):
                                     st.json(card)
                             else:
@@ -321,27 +416,19 @@ def main():
                             with st.expander("View Raw HTML", expanded=False):
                                 st.code(card, language="html")
                         elif isinstance(card, dict):
-                            # It's JSON - try to render as Adaptive Card
+                            # It's JSON - render as Adaptive Card
                             card_type = card.get('type', '')
                             if card_type == 'AdaptiveCard':
+                                # Render card with a styled container
+                                st.markdown('<div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">', unsafe_allow_html=True)
+
                                 body = card.get('body', [])
                                 for element in body:
-                                    elem_type = element.get('type', '')
-                                    if elem_type == 'TextBlock':
-                                        text = element.get('text', '')
-                                        weight = element.get('weight', 'default')
+                                    render_adaptive_card_element(element)
 
-                                        # Apply basic formatting
-                                        if weight == 'bolder':
-                                            st.markdown(f"**{text}**")
-                                        else:
-                                            st.markdown(text)
-                                    elif elem_type == 'Image':
-                                        url = element.get('url', '')
-                                        if url:
-                                            st.image(url)
+                                st.markdown('</div>', unsafe_allow_html=True)
 
-                            # Show JSON structure
+                            # Show JSON structure in collapsible section
                             with st.expander("View JSON Structure", expanded=False):
                                 st.json(card)
                         else:
