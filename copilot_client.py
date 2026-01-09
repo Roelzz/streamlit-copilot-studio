@@ -262,10 +262,6 @@ class CopilotStudioClient:
                 # Process attachments (Adaptive Cards, etc.)
                 attachments = getattr(reply, 'attachments', None) or []
 
-                # Debug: yield info about attachments
-                if attachments:
-                    yield ('status', f'Received {len(attachments)} attachment(s)')
-
                 for attachment in attachments:
                     # Handle both dict and object forms
                     if hasattr(attachment, '__dict__'):
@@ -277,9 +273,6 @@ class CopilotStudioClient:
 
                     content_type = att_dict.get('contentType') or att_dict.get('content_type') or ''
                     content = att_dict.get('content') or att_dict.get('Content')
-
-                    # Debug: show what we received
-                    yield ('status', f'Attachment type: {content_type}, has content: {content is not None}')
 
                     # Adaptive Cards (check for both "adaptive" and "application/vnd.microsoft.card.adaptive")
                     if content:

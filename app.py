@@ -402,9 +402,7 @@ def main():
             # Render adaptive cards if any
             if adaptive_cards:
                 import json
-                st.info(f"🔍 Debug: Received {len(adaptive_cards)} adaptive card(s)")
                 for idx, card in enumerate(adaptive_cards):
-                    st.write(f"Debug: Card {idx+1} type: {type(card)}, is string: {isinstance(card, str)}, is dict: {isinstance(card, dict)}")
                     with st.expander(f"📋 Adaptive Card {idx + 1}", expanded=True):
                         # Check if card is HTML string or JSON object
                         if isinstance(card, str):
