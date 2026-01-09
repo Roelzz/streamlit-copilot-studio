@@ -116,9 +116,21 @@ The app validates all required environment variables at startup and shows helpfu
 **copilot_client.py** - Copilot Studio SDK wrapper
 - `CopilotStudioClient` class wraps the M365 Agents SDK's `CopilotClient`
 - Manages conversation lifecycle (start conversation, send messages)
-- Yields typed tuples during message processing: `('status', text)`, `('thought', dict)`, `('search_result', dict)`, `('content', chunk)`, `('final_content', text)`, `('citations', dict)`, `('suggestion', text)`
+- Yields typed tuples during message processing: `('status', text)`, `('thought', dict)`, `('search_result', dict)`, `('content', chunk)`, `('final_content', text)`, `('adaptive_card', dict)`, `('attachment', dict)`, `('citations', dict)`, `('suggestion', text)`
 - Implements citation parsing and rendering (Unicode markers to numbered references with optional HTML links)
-- Writes debug JSON to `/tmp/activities_debug.json` for troubleshooting SDK activity responses
+- Extracts and processes attachments including Adaptive Cards from activity responses
+- Writes debug JSON for troubleshooting SDK activity responses (when DEBUG_MODE=true)
+
+### Adaptive Card Support
+
+Copilot Studio can send Adaptive Cards as attachments. The app:
+- Detects attachments with contentType containing "adaptive"
+- Displays cards in expandable sections (📋 Adaptive Card)
+- Shows both the raw JSON structure and basic rendering of common elements
+- Supports TextBlock (with bold formatting) and Image elements
+- Stores cards in message history for persistence
+
+To send adaptive cards from Copilot Studio, use the "Send a message" action with attachments.
 
 ### Citation Handling
 
