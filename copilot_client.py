@@ -5,10 +5,43 @@ Simple wrapper for the M365 Agents SDK.
 
 import os
 import re
+import tempfile
+from pathlib import Path
 from typing import AsyncIterator, Optional
 
+import bleach
 from microsoft_agents.activity import ActivityTypes
 from microsoft_agents.copilotstudio.client import ConnectionSettings, CopilotClient
+
+# Debug mode configuration
+DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
+DEBUG_FILE = os.getenv("DEBUG_FILE", os.path.join(tempfile.gettempdir(), "activities_debug.json"))
+
+
+def sanitize_html(html: str) -> str:
+    """
+    Sanitize HTML to prevent XSS attacks while preserving safe formatting.
+
+    Only allows specific safe tags and attributes needed for citations and formatting.
+    """
+    allowed_tags = ['a', 'sup', 'div', 'br', 'strong', 'em', 'span', 'p']
+    allowed_attributes = {
+        'a': ['href', 'target', 'style'],
+        'div': ['style'],
+        'span': ['style'],
+        'sup': [],
+    }
+
+    # Sanitize HTML with whitelist approach
+    cleaned = bleach.clean(
+        html,
+        tags=allowed_tags,
+        attributes=allowed_attributes,
+        strip=True,  # Strip disallowed tags instead of escaping
+        protocols=['http', 'https']  # Only allow safe URL protocols
+    )
+
+    return cleaned
 
 
 def clean_citations(text: str, use_html: bool = False, citation_metadata: dict = None) -> tuple[str, dict]:
@@ -75,14 +108,17 @@ def format_references_html(citations: dict) -> str:
     html += '<strong>References:</strong><br>'
     for num in sorted(citations.keys()):
         cite = citations[num]
-        title = cite.get('title', f'Source {num}')
+        # Sanitize title to prevent XSS
+        title = bleach.clean(cite.get('title', f'Source {num}'), tags=[], strip=True)
         url = cite.get('url', '')
         if url:
+            # Sanitize URL
+            url = bleach.clean(url, tags=[], strip=True)
             html += f'<a href="{url}" target="_blank" style="color:#0066cc;">[{num}] {title}</a><br>'
         else:
             html += f'<span>[{num}] {title}</span><br>'
     html += '</div>'
-    return html
+    return sanitize_html(html)
 
 
 class CopilotStudioClient:
@@ -127,33 +163,45 @@ class CopilotStudioClient:
             return
 
         import json
-        debug_activities = []
+        debug_activities = [] if DEBUG_MODE else None
 
         async for reply in self._client.ask_question(message, self._conversation_id):
             channel_data = getattr(reply, 'channel_data', None) or getattr(reply, 'channelData', {}) or {}
 
-            # Capture full activity for debugging - properly serialize entities
-            entities_data = []
-            raw_entities = getattr(reply, 'entities', None) or []
-            for ent in raw_entities:
-                if hasattr(ent, '__dict__'):
-                    entities_data.append(vars(ent))
-                elif isinstance(ent, dict):
-                    entities_data.append(ent)
-                else:
-                    entities_data.append(str(ent))
+            # Capture full activity for debugging only if DEBUG_MODE is enabled
+            if DEBUG_MODE and debug_activities is not None:
+                entities_data = []
+                raw_entities = getattr(reply, 'entities', None) or []
+                for ent in raw_entities:
+                    if hasattr(ent, '__dict__'):
+                        entities_data.append(vars(ent))
+                    elif isinstance(ent, dict):
+                        entities_data.append(ent)
+                    else:
+                        entities_data.append(str(ent))
 
-            activity_debug = {
-                'type': str(reply.type),
-                'text': reply.text[:200] if reply.text else None,
-                'channel_data': channel_data,
-                'entities': entities_data,
-                'attachments': getattr(reply, 'attachments', None),
-                'value': getattr(reply, 'value', None),
-            }
-            debug_activities.append(activity_debug)
-            with open('/tmp/activities_debug.json', 'w') as f:
-                json.dump(debug_activities, f, indent=2, default=str)
+                activity_debug = {
+                    'type': str(reply.type),
+                    'text': reply.text[:200] if reply.text else None,
+                    'channel_data': channel_data,
+                    'entities': entities_data,
+                    'attachments': getattr(reply, 'attachments', None),
+                    'value': getattr(reply, 'value', None),
+                }
+                debug_activities.append(activity_debug)
+
+                # Write to debug file with proper error handling
+                try:
+                    debug_path = Path(DEBUG_FILE)
+                    debug_path.parent.mkdir(parents=True, exist_ok=True)
+                    with open(debug_path, 'w') as f:
+                        json.dump(debug_activities, f, indent=2, default=str)
+                    # Set restrictive permissions (owner read/write only) on Unix systems
+                    if hasattr(os, 'chmod'):
+                        os.chmod(debug_path, 0o600)
+                except (IOError, OSError) as e:
+                    # Silently fail if we can't write debug file
+                    pass
 
             # Capture chain-of-thought and search results from event activities
             if reply.type == ActivityTypes.event:

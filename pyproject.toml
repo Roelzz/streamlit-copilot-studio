@@ -13,6 +13,7 @@ dependencies = [
     "microsoft-agents-activity",
     "microsoft-agents-copilotstudio-client",
     "watchdog>=2.1.5",
+    "bleach>=6.0.0",
 ]
 
 [project.scripts]

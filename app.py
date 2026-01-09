@@ -9,9 +9,34 @@ import streamlit as st
 from streamlit_msal import Msal
 from dotenv import load_dotenv
 
-from copilot_client import CopilotStudioClient, clean_citations, format_references_html
+from copilot_client import CopilotStudioClient, clean_citations, format_references_html, sanitize_html
 
 load_dotenv()
+
+# Validate required environment variables at startup
+REQUIRED_ENV_VARS = {
+    "COPILOT_ENVIRONMENT_ID": "Copilot Studio environment ID",
+    "COPILOT_AGENT_IDENTIFIER": "Copilot Studio agent identifier",
+    "AZURE_TENANT_ID": "Azure tenant ID",
+    "AZURE_APP_CLIENT_ID": "Azure app client ID",
+}
+
+missing_vars = []
+for var_name, var_description in REQUIRED_ENV_VARS.items():
+    if not os.getenv(var_name):
+        missing_vars.append(f"- **{var_name}**: {var_description}")
+
+if missing_vars:
+    # Page config needs to be set first even for error pages
+    st.set_page_config(
+        page_title="Configuration Error",
+        page_icon="⚠️",
+        layout="centered",
+    )
+    st.error("Missing required environment variables")
+    st.markdown("Please configure the following in your `.env` file:\n\n" + "\n".join(missing_vars))
+    st.info("Copy `.env.example` to `.env` and fill in your values. See README.md for details.")
+    st.stop()
 
 # Page config
 st.set_page_config(
@@ -72,23 +97,37 @@ def main():
     # Initialize client if needed
     if st.session_state.client is None:
         with st.spinner("Connecting to Copilot Studio..."):
-            client = CopilotStudioClient(access_token)
-            welcome = asyncio.run(client.start_conversation())
-            st.session_state.client = client
+            try:
+                client = CopilotStudioClient(access_token)
+                # Add timeout for initial connection (30 seconds)
+                welcome = asyncio.run(
+                    asyncio.wait_for(client.start_conversation(), timeout=30)
+                )
+                st.session_state.client = client
 
-            if welcome:
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": welcome
-                })
+                if welcome:
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": welcome
+                    })
+            except asyncio.TimeoutError:
+                st.error("Connection to Copilot Studio timed out.")
+                st.info("Please check your network connection and try again.")
+                st.stop()
+            except Exception as e:
+                st.error(f"Failed to connect to Copilot Studio: {str(e)}")
+                st.info("Please check your configuration in `.env` and ensure the agent is published in Copilot Studio.")
+                st.stop()
 
     # Display messages
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
-            # Use unsafe_allow_html for assistant messages (may contain citation links)
+            # Sanitize HTML before displaying (prevents XSS attacks)
             if msg["role"] == "assistant":
-                st.markdown(msg["content"], unsafe_allow_html=True)
+                sanitized_content = sanitize_html(msg["content"])
+                st.markdown(sanitized_content, unsafe_allow_html=True)
             else:
+                # User messages should be plain text only
                 st.markdown(msg["content"])
 
     # Chat input
@@ -113,84 +152,106 @@ def main():
                 thoughts = []  # Collect chain-of-thought
                 got_streaming = False
 
-                async for msg_type, msg_content in st.session_state.client.send_message(prompt):
-                    if msg_type == 'status':
-                        status_placeholder.caption(f"_{msg_content}_")
-                    elif msg_type == 'thought':
-                        # Collect reasoning/chain-of-thought
-                        thoughts.append(msg_content)
-                        # Update thinking display
-                        with thinking_container.status("Thinking...", expanded=False) as status:
+                try:
+                    async for msg_type, msg_content in st.session_state.client.send_message(prompt):
+                        if msg_type == 'status':
+                            status_placeholder.caption(f"_{msg_content}_")
+                        elif msg_type == 'thought':
+                            # Collect reasoning/chain-of-thought
+                            thoughts.append(msg_content)
+                            # Update thinking display
+                            with thinking_container.status("Thinking...", expanded=False) as status:
+                                for t in thoughts:
+                                    task = t.get('task', 'Processing')
+                                    text = t.get('text', '')
+                                    st.write(f"**{task}**: {text}")
+                        elif msg_type == 'search_result':
+                            # Collect search results (contain URLs)
+                            search_results.append(msg_content)
+                        elif msg_type == 'content':
+                            got_streaming = True
+                            content_parts.append(msg_content)
+                            # Show accumulated content with citations cleaned (plain text during streaming)
+                            accumulated = "".join(content_parts)
+                            cleaned, _ = clean_citations(accumulated)
+                            content_placeholder.markdown(cleaned)
+                        elif msg_type == 'final_content':
+                            # Non-streaming response - use this only if we didn't get streaming chunks
+                            if not got_streaming:
+                                content_parts = [msg_content]
+                                cleaned, _ = clean_citations(msg_content)
+                                content_placeholder.markdown(cleaned)
+                        elif msg_type == 'citations':
+                            # Merge citation metadata from entities
+                            # Try to enrich with URLs from search results
+                            for cite_id, cite_info in msg_content.items():
+                                # Citation IDs are like 'turn52search0' - extract index
+                                import re
+                                match = re.search(r'search(\d+)$', cite_id)
+                                if match and not cite_info.get('url'):
+                                    idx = int(match.group(1))
+                                    # Find matching search result by index
+                                    for sr in search_results:
+                                        if sr.get('index') == idx:
+                                            cite_info['url'] = sr.get('url', '')
+                                            if not cite_info.get('title'):
+                                                cite_info['title'] = sr.get('title', '')
+                                            break
+                            citation_metadata.update(msg_content)
+                        elif msg_type == 'suggestion':
+                            suggestions = msg_content
+
+                    # Finalize thinking display
+                    if thoughts:
+                        with thinking_container.status("Reasoning", expanded=False, state="complete") as status:
                             for t in thoughts:
                                 task = t.get('task', 'Processing')
                                 text = t.get('text', '')
                                 st.write(f"**{task}**: {text}")
-                    elif msg_type == 'search_result':
-                        # Collect search results (contain URLs)
-                        search_results.append(msg_content)
-                    elif msg_type == 'content':
-                        got_streaming = True
-                        content_parts.append(msg_content)
-                        # Show accumulated content with citations cleaned (plain text during streaming)
-                        accumulated = "".join(content_parts)
-                        cleaned, _ = clean_citations(accumulated)
-                        content_placeholder.markdown(cleaned)
-                    elif msg_type == 'final_content':
-                        # Non-streaming response - use this only if we didn't get streaming chunks
-                        if not got_streaming:
-                            content_parts = [msg_content]
-                            cleaned, _ = clean_citations(msg_content)
-                            content_placeholder.markdown(cleaned)
-                    elif msg_type == 'citations':
-                        # Merge citation metadata from entities
-                        # Try to enrich with URLs from search results
-                        for cite_id, cite_info in msg_content.items():
-                            # Citation IDs are like 'turn52search0' - extract index
-                            import re
-                            match = re.search(r'search(\d+)$', cite_id)
-                            if match and not cite_info.get('url'):
-                                idx = int(match.group(1))
-                                # Find matching search result by index
-                                for sr in search_results:
-                                    if sr.get('index') == idx:
-                                        cite_info['url'] = sr.get('url', '')
-                                        if not cite_info.get('title'):
-                                            cite_info['title'] = sr.get('title', '')
-                                        break
-                        citation_metadata.update(msg_content)
-                    elif msg_type == 'suggestion':
-                        suggestions = msg_content
 
-                # Finalize thinking display
-                if thoughts:
-                    with thinking_container.status("Reasoning", expanded=False, state="complete") as status:
-                        for t in thoughts:
-                            task = t.get('task', 'Processing')
-                            text = t.get('text', '')
-                            st.write(f"**{task}**: {text}")
+                    # Clear status when done
+                    status_placeholder.empty()
 
-                # Clear status when done
-                status_placeholder.empty()
+                    # Return cleaned final content with clickable HTML citations
+                    raw_content = "".join(content_parts)
+                    cleaned_text, citations = clean_citations(raw_content, use_html=True, citation_metadata=citation_metadata)
 
-                # Return cleaned final content with clickable HTML citations
-                raw_content = "".join(content_parts)
-                cleaned_text, citations = clean_citations(raw_content, use_html=True, citation_metadata=citation_metadata)
+                    # Add references section with clickable links
+                    if citations:
+                        cleaned_text += format_references_html(citations)
 
-                # Add references section with clickable links
-                if citations:
-                    cleaned_text += format_references_html(citations)
+                    return cleaned_text, citations, suggestions
 
-                return cleaned_text, citations, suggestions
+                except Exception as e:
+                    status_placeholder.empty()
+                    error_msg = f"Error during conversation: {str(e)}"
+                    st.error(error_msg)
+                    return f"Sorry, I encountered an error while processing your request. Please try again.", {}, None
 
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             try:
-                response, citations, suggestions = loop.run_until_complete(process_response())
+                # Add timeout protection (5 minutes max)
+                response, citations, suggestions = loop.run_until_complete(
+                    asyncio.wait_for(process_response(), timeout=300)
+                )
+            except asyncio.TimeoutError:
+                response = "Sorry, the request timed out. The agent took too long to respond."
+                citations = {}
+                suggestions = None
+                st.error("Please try again with a simpler question or start a new conversation.")
+            except Exception as e:
+                response = f"Sorry, an unexpected error occurred: {str(e)}"
+                citations = {}
+                suggestions = None
+                st.error("If this error persists, try starting a new conversation.")
             finally:
                 loop.close()
 
             # Render final response (with clickable HTML citations if any)
-            content_placeholder.markdown(response, unsafe_allow_html=True)
+            # Sanitize before displaying to prevent XSS
+            sanitized_response = sanitize_html(response)
+            content_placeholder.markdown(sanitized_response, unsafe_allow_html=True)
 
             # Show suggestions if any
             if suggestions:
