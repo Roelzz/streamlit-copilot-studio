@@ -132,11 +132,17 @@ def main():
                     import json
                     for idx, card in enumerate(msg["adaptive_cards"]):
                         with st.expander(f"📋 Adaptive Card {idx + 1}", expanded=False):
-                            # Display card as formatted JSON
-                            st.json(card)
+                            # Check if card is HTML string or JSON object
+                            if isinstance(card, str):
+                                # It's HTML content - sanitize and render
+                                sanitized_card_html = sanitize_html(card)
+                                st.markdown(sanitized_card_html, unsafe_allow_html=True)
 
-                            # Try to render some basic elements
-                            if isinstance(card, dict):
+                                # Also show raw HTML in a code block for debugging
+                                with st.expander("View Raw HTML", expanded=False):
+                                    st.code(card, language="html")
+                            elif isinstance(card, dict):
+                                # It's JSON - try to render as Adaptive Card
                                 card_type = card.get('type', '')
                                 if card_type == 'AdaptiveCard':
                                     body = card.get('body', [])
@@ -155,6 +161,13 @@ def main():
                                             url = element.get('url', '')
                                             if url:
                                                 st.image(url)
+
+                                # Show JSON structure
+                                with st.expander("View JSON Structure", expanded=False):
+                                    st.json(card)
+                            else:
+                                # Unknown format - just display it
+                                st.write(card)
             else:
                 # User messages should be plain text only
                 st.markdown(msg["content"])
@@ -296,11 +309,17 @@ def main():
                 import json
                 for idx, card in enumerate(adaptive_cards):
                     with st.expander(f"📋 Adaptive Card {idx + 1}", expanded=True):
-                        # Display card as formatted JSON
-                        st.json(card)
+                        # Check if card is HTML string or JSON object
+                        if isinstance(card, str):
+                            # It's HTML content - sanitize and render
+                            sanitized_card_html = sanitize_html(card)
+                            st.markdown(sanitized_card_html, unsafe_allow_html=True)
 
-                        # Try to render some basic elements
-                        if isinstance(card, dict):
+                            # Also show raw HTML in a code block for debugging
+                            with st.expander("View Raw HTML", expanded=False):
+                                st.code(card, language="html")
+                        elif isinstance(card, dict):
+                            # It's JSON - try to render as Adaptive Card
                             card_type = card.get('type', '')
                             if card_type == 'AdaptiveCard':
                                 body = card.get('body', [])
@@ -308,7 +327,6 @@ def main():
                                     elem_type = element.get('type', '')
                                     if elem_type == 'TextBlock':
                                         text = element.get('text', '')
-                                        size = element.get('size', 'default')
                                         weight = element.get('weight', 'default')
 
                                         # Apply basic formatting
@@ -320,6 +338,13 @@ def main():
                                         url = element.get('url', '')
                                         if url:
                                             st.image(url)
+
+                            # Show JSON structure
+                            with st.expander("View JSON Structure", expanded=False):
+                                st.json(card)
+                        else:
+                            # Unknown format - just display it
+                            st.write(card)
 
             # Show suggestions if any
             if suggestions:
