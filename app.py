@@ -23,9 +23,9 @@ def render_adaptive_card_element(element, depth=0):
 
     if elem_type == 'TextBlock':
         text = element.get('text', '')
-        weight = element.get('weight', 'default')
-        size = element.get('size', 'default')
-        horizontal_alignment = element.get('horizontalAlignment', 'left')
+        weight = element.get('weight') or 'default'
+        size = element.get('size') or 'default'
+        horizontal_alignment = element.get('horizontalAlignment') or 'left'
         is_subtle = element.get('isSubtle', False)
 
         # Apply formatting
@@ -44,14 +44,14 @@ def render_adaptive_card_element(element, depth=0):
 
         # Build markdown with HTML styling
         style = f"font-size: {font_size};"
-        if horizontal_alignment.lower() == 'center':
+        if horizontal_alignment and horizontal_alignment.lower() == 'center':
             style += " text-align: center;"
-        elif horizontal_alignment.lower() == 'right':
+        elif horizontal_alignment and horizontal_alignment.lower() == 'right':
             style += " text-align: right;"
         if is_subtle:
             style += " opacity: 0.7;"
 
-        if weight == 'Bolder' or weight == 'bolder':
+        if weight and (weight.lower() == 'bolder'):
             st.markdown(f'<div style="{style}"><strong>{text}</strong></div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div style="{style}">{text}</div>', unsafe_allow_html=True)
@@ -96,14 +96,14 @@ def render_adaptive_card_element(element, depth=0):
 
     elif elem_type == 'ActionSet':
         actions = element.get('actions', [])
-        horizontal_alignment = element.get('horizontalAlignment', 'left')
+        horizontal_alignment = element.get('horizontalAlignment') or 'left'
 
         if actions:
             # Create button layout
             align_style = ""
-            if horizontal_alignment.lower() == 'center':
+            if horizontal_alignment and horizontal_alignment.lower() == 'center':
                 align_style = "text-align: center;"
-            elif horizontal_alignment.lower() == 'right':
+            elif horizontal_alignment and horizontal_alignment.lower() == 'right':
                 align_style = "text-align: right;"
 
             st.markdown(f'<div style="margin: 10px 0; {align_style}">', unsafe_allow_html=True)
