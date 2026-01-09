@@ -123,14 +123,29 @@ The app validates all required environment variables at startup and shows helpfu
 
 ### Adaptive Card Support
 
-Copilot Studio can send Adaptive Cards as attachments. The app:
-- Detects attachments with contentType containing "adaptive"
-- Displays cards in expandable sections (📋 Adaptive Card)
-- Shows both the raw JSON structure and basic rendering of common elements
-- Supports TextBlock (with bold formatting) and Image elements
-- Stores cards in message history for persistence
+Copilot Studio can send Adaptive Cards as attachments. The app provides full rendering support:
 
-To send adaptive cards from Copilot Studio, use the "Send a message" action with attachments.
+**Supported Elements:**
+- **TextBlock** - With size (Small, Medium, Large, ExtraLarge), weight (Bolder), alignment (Left, Center, Right), and isSubtle properties
+- **Image** - With size variants and alt text
+- **Container** - Groups nested elements with padding
+- **ColumnSet** - Multi-column layouts using Streamlit columns
+- **ActionSet** - Renders buttons (centered, left, or right aligned)
+- **ProgressBar** - Visual progress indicator
+
+**Rendering Features:**
+- Recursive element processing handles deeply nested structures
+- Styled card container with border, shadow, and padding
+- Proper typography hierarchy and spacing
+- JSON structure available in collapsible "View JSON Structure" section
+- Supports both JSON-based adaptive cards and HTML content
+
+**How It Works:**
+- Cards appear in expandable "📋 Adaptive Card" sections
+- Visual rendering appears by default
+- Click "View JSON Structure" to see the raw card definition
+
+To send adaptive cards from Copilot Studio, use the "Send a message" action with adaptive card attachments.
 
 ### Citation Handling
 
