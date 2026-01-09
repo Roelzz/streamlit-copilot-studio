@@ -94,12 +94,133 @@ def render_adaptive_card_element(element, depth=0):
         # Simple progress bar representation
         st.markdown('<div style="background: #e0e0e0; height: 4px; border-radius: 2px; margin: 10px 0;"><div style="background: #1976d2; height: 4px; width: 60%; border-radius: 2px;"></div></div>', unsafe_allow_html=True)
 
+    elif elem_type == 'FactSet':
+        facts = element.get('facts', [])
+        if facts:
+            # Render facts as a clean table
+            st.markdown('<div style="margin: 10px 0;">', unsafe_allow_html=True)
+            for fact in facts:
+                title = fact.get('title', '')
+                value = fact.get('value', '')
+                st.markdown(f'<div style="display: flex; padding: 4px 0; border-bottom: 1px solid #f0f0f0;"><div style="flex: 0 0 40%; font-weight: 500; color: #666;">{title}</div><div style="flex: 1;">{value}</div></div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    elif elem_type == 'ImageSet':
+        images = element.get('images', [])
+        image_size = element.get('imageSize', 'medium')
+        if images:
+            # Use Streamlit columns for image grid
+            cols = st.columns(min(len(images), 4))  # Max 4 columns
+            for idx, img in enumerate(images):
+                with cols[idx % 4]:
+                    url = img.get('url', '')
+                    if url:
+                        if image_size.lower() == 'small':
+                            st.image(url, width=60)
+                        elif image_size.lower() == 'large':
+                            st.image(url, width=150)
+                        else:  # medium
+                            st.image(url, width=100)
+
+    elif elem_type == 'RichTextBlock':
+        inlines = element.get('inlines', [])
+        if inlines:
+            rich_text = ""
+            for inline in inlines:
+                if isinstance(inline, dict):
+                    inline_type = inline.get('type', '')
+                    if inline_type == 'TextRun':
+                        text = inline.get('text', '')
+                        color = inline.get('color')
+                        weight = inline.get('weight')
+                        size = inline.get('size')
+                        italic = inline.get('italic', False)
+
+                        # Build styled span
+                        style = ""
+                        if color:
+                            style += f"color: {color};"
+                        if weight == 'Bolder':
+                            text = f"<strong>{text}</strong>"
+                        if italic:
+                            text = f"<em>{text}</em>"
+
+                        rich_text += f'<span style="{style}">{text}</span>'
+                elif isinstance(inline, str):
+                    rich_text += inline
+
+            if rich_text:
+                st.markdown(f'<div style="margin: 5px 0;">{rich_text}</div>', unsafe_allow_html=True)
+
+    elif elem_type == 'Table':
+        columns = element.get('columns', [])
+        rows = element.get('rows', [])
+
+        if columns and rows:
+            # Build HTML table
+            table_html = '<table style="width: 100%; border-collapse: collapse; margin: 10px 0;">'
+
+            # Header row
+            table_html += '<tr style="border-bottom: 2px solid #ddd; background: #f5f5f5;">'
+            for col in columns:
+                width = col.get('width', 'auto')
+                table_html += f'<th style="padding: 8px; text-align: left;">'
+                table_html += '</th>'
+            table_html += '</tr>'
+
+            # Data rows
+            for row in rows:
+                cells = row.get('cells', [])
+                table_html += '<tr style="border-bottom: 1px solid #eee;">'
+                for cell in cells:
+                    table_html += '<td style="padding: 8px;">'
+                    # Recursively render cell items
+                    items = cell.get('items', [])
+                    for item in items:
+                        # For now, just extract text
+                        if isinstance(item, dict) and item.get('type') == 'TextBlock':
+                            table_html += item.get('text', '')
+                    table_html += '</td>'
+                table_html += '</tr>'
+
+            table_html += '</table>'
+            st.markdown(table_html, unsafe_allow_html=True)
+
+    elif elem_type.startswith('Input.'):
+        # Render input elements (read-only in Streamlit)
+        input_type = elem_type.replace('Input.', '')
+        label = element.get('label', '') or element.get('placeholder', '')
+        input_id = element.get('id', '')
+
+        st.markdown(f'<div style="margin: 10px 0;"><label style="display: block; margin-bottom: 4px; font-weight: 500; color: #666;">{label or input_type}</label>', unsafe_allow_html=True)
+
+        if input_type == 'Text':
+            is_multiline = element.get('isMultiline', False)
+            if is_multiline:
+                st.text_area(label or "Text input", disabled=True, key=f"input_{input_id}_{depth}", label_visibility="collapsed")
+            else:
+                st.text_input(label or "Text input", disabled=True, key=f"input_{input_id}_{depth}", label_visibility="collapsed")
+        elif input_type == 'Number':
+            st.number_input(label or "Number input", disabled=True, key=f"input_{input_id}_{depth}", label_visibility="collapsed")
+        elif input_type == 'Date':
+            st.date_input(label or "Date input", disabled=True, key=f"input_{input_id}_{depth}", label_visibility="collapsed")
+        elif input_type == 'Time':
+            st.time_input(label or "Time input", disabled=True, key=f"input_{input_id}_{depth}", label_visibility="collapsed")
+        elif input_type == 'Toggle':
+            st.checkbox(label or "Toggle", disabled=True, key=f"input_{input_id}_{depth}", label_visibility="collapsed")
+        elif input_type == 'ChoiceSet':
+            choices = element.get('choices', [])
+            choice_titles = [c.get('title', '') for c in choices]
+            st.selectbox(label or "Choice", choice_titles, disabled=True, key=f"input_{input_id}_{depth}", label_visibility="collapsed")
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
     elif elem_type == 'ActionSet':
         actions = element.get('actions', [])
         horizontal_alignment = element.get('horizontalAlignment') or 'left'
 
         if actions:
-            # Create button layout
+            # Create button layout with actual link functionality
             align_style = ""
             if horizontal_alignment and horizontal_alignment.lower() == 'center':
                 align_style = "text-align: center;"
@@ -111,8 +232,17 @@ def render_adaptive_card_element(element, depth=0):
             for action in actions:
                 title = action.get('title', '')
                 action_type = action.get('type', '')
+
                 if title:
-                    button_html += f'<button style="margin: 0 5px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer;">{title}</button>'
+                    if action_type == 'Action.OpenUrl':
+                        url = action.get('url', '')
+                        if url:
+                            button_html += f'<a href="{url}" target="_blank" style="text-decoration: none;"><button style="margin: 0 5px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer;">{title}</button></a>'
+                        else:
+                            button_html += f'<button style="margin: 0 5px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer;">{title}</button>'
+                    else:
+                        # Submit, Execute, etc. - just show as disabled button
+                        button_html += f'<button style="margin: 0 5px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer;">{title}</button>'
             st.markdown(button_html, unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 

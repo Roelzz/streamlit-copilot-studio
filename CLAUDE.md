@@ -127,11 +127,16 @@ Copilot Studio can send Adaptive Cards as attachments. The app provides full ren
 
 **Supported Elements:**
 - **TextBlock** - With size (Small, Medium, Large, ExtraLarge), weight (Bolder), alignment (Left, Center, Right), and isSubtle properties
+- **RichTextBlock** - Formatted text with TextRun elements supporting color, weight, size, and italic styling
 - **Image** - With size variants and alt text
+- **ImageSet** - Grid of images with configurable size (small, medium, large)
 - **Container** - Groups nested elements with padding
 - **ColumnSet** - Multi-column layouts using Streamlit columns
-- **ActionSet** - Renders buttons (centered, left, or right aligned)
+- **FactSet** - Name-value pairs rendered as a clean table (commonly used for metadata)
+- **Table** - Full table support with rows and cells
+- **ActionSet** - Renders buttons with Action.OpenUrl support (clickable links)
 - **ProgressBar** - Visual progress indicator
+- **Input Elements** - Text, Number, Date, Time, Toggle, ChoiceSet (rendered as disabled/read-only)
 
 **Rendering Features:**
 - Recursive element processing handles deeply nested structures
@@ -146,6 +151,8 @@ Copilot Studio can send Adaptive Cards as attachments. The app provides full ren
 - Click "View JSON Structure" to see the raw card definition
 
 To send adaptive cards from Copilot Studio, use the "Send a message" action with adaptive card attachments.
+
+**Reference:** Based on the official [Microsoft Adaptive Cards specification](https://learn.microsoft.com/en-us/adaptive-cards/)
 
 ### Citation Handling
 
