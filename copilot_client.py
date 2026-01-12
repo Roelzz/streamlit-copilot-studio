@@ -83,8 +83,8 @@ def clean_citations(text: str, use_html: bool = False, citation_metadata: dict =
         url = cite_info['url']
 
         if use_html and url:
-            # Clickable superscript that opens external URL
-            return f'<a href="{url}" target="_blank" style="text-decoration:none;color:#0066cc;"><sup>[{num}]</sup></a>'
+            # Clickable superscript that opens external URL - Refined with hover state
+            return f'<a href="{url}" target="_blank" style="text-decoration:none;color:#1D4ED8;font-weight:700;margin:0 2px;"><sup>[{num}]</sup></a>'
         else:
             # Plain text for streaming display
             return f"[{num}]"
@@ -100,23 +100,89 @@ def clean_citations(text: str, use_html: bool = False, citation_metadata: dict =
 
 
 def format_references_html(citations: dict) -> str:
-    """Format citations as an HTML references section with clickable links."""
+    """Format citations as an HTML references section with distinctive editorial styling."""
     if not citations:
         return ""
 
-    html = '<div style="margin-top:1rem;padding-top:0.5rem;border-top:1px solid #ddd;font-size:0.9em;">'
-    html += '<strong>References:</strong><br>'
+    html = '''<div style="
+        margin-top: 2rem;
+        padding: 1.5rem;
+        border-top: 3px solid;
+        border-image: linear-gradient(90deg, #1D4ED8 0%, #F59E0B 100%) 1;
+        background: linear-gradient(135deg, #FAFAF9 0%, #FFFFFF 100%);
+        border-radius: 0 0 12px 12px;
+        font-size: 0.875rem;
+        line-height: 1.7;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+        font-family: 'Manrope', sans-serif;
+    ">'''
+    html += '''<div style="
+        font-family: 'Crimson Pro', serif;
+        font-weight: 700;
+        color: #292524;
+        margin-bottom: 1rem;
+        font-size: 1.125rem;
+        letter-spacing: -0.01em;
+    ">References</div>'''
+
     for num in sorted(citations.keys()):
         cite = citations[num]
-        # Sanitize title to prevent XSS
         title = bleach.clean(cite.get('title', f'Source {num}'), tags=[], strip=True)
         url = cite.get('url', '')
+
         if url:
-            # Sanitize URL
             url = bleach.clean(url, tags=[], strip=True)
-            html += f'<a href="{url}" target="_blank" style="color:#0066cc;">[{num}] {title}</a><br>'
+            html += f'''<div style="
+                margin-bottom: 0.75rem;
+                padding: 0.5rem 0;
+                border-bottom: 1px solid #E7E5E4;
+            ">
+                <a href="{url}" target="_blank" style="
+                    color: #1D4ED8;
+                    text-decoration: none;
+                    font-weight: 500;
+                    display: inline-flex;
+                    align-items: baseline;
+                    gap: 0.5rem;
+                    transition: all 0.2s ease;
+                ">
+                    <span style="
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        min-width: 1.75rem;
+                        height: 1.75rem;
+                        font-weight: 700;
+                        color: #1D4ED8;
+                        background: #DBEAFE;
+                        border-radius: 6px;
+                        font-size: 0.75rem;
+                    ">{num}</span>
+                    <span style="text-decoration: underline; flex: 1;">{title}</span>
+                </a>
+            </div>'''
         else:
-            html += f'<span>[{num}] {title}</span><br>'
+            html += f'''<div style="
+                margin-bottom: 0.75rem;
+                padding: 0.5rem 0;
+                color: #78716C;
+                border-bottom: 1px solid #E7E5E4;
+            ">
+                <span style="
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 1.75rem;
+                    height: 1.75rem;
+                    font-weight: 700;
+                    background: #F5F5F4;
+                    border-radius: 6px;
+                    font-size: 0.75rem;
+                    margin-right: 0.5rem;
+                ">{num}</span>
+                <span>{title}</span>
+            </div>'''
+
     html += '</div>'
     return sanitize_html(html)
 

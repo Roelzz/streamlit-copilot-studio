@@ -42,14 +42,14 @@ def render_adaptive_card_element(element, depth=0):
         }
         font_size = size_map.get(size, '1em')
 
-        # Build markdown with HTML styling
-        style = f"font-size: {font_size};"
+        # Build markdown with HTML styling - Editorial typography
+        style = f"font-size: {font_size}; color: #292524; line-height: 1.65; margin-bottom: 0.75rem; font-family: 'Manrope', sans-serif;"
         if horizontal_alignment and horizontal_alignment.lower() == 'center':
             style += " text-align: center;"
         elif horizontal_alignment and horizontal_alignment.lower() == 'right':
             style += " text-align: right;"
         if is_subtle:
-            style += " opacity: 0.7;"
+            style += " color: #6B7280;"
 
         if weight and (weight.lower() == 'bolder'):
             st.markdown(f'<div style="{style}"><strong>{text}</strong></div>', unsafe_allow_html=True)
@@ -74,8 +74,8 @@ def render_adaptive_card_element(element, depth=0):
 
     elif elem_type == 'Container':
         items = element.get('items', [])
-        # Render container items in a styled div
-        st.markdown('<div style="padding: 10px; margin: 5px 0;">', unsafe_allow_html=True)
+        # Render container items in a styled div - Refined editorial
+        st.markdown('<div style="padding: 1.25rem; margin: 1rem 0; background: linear-gradient(135deg, #FAFAF9 0%, #FFFFFF 100%); border-radius: 10px; border: 1.5px solid #E7E5E4; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);">', unsafe_allow_html=True)
         for item in items:
             render_adaptive_card_element(item, depth + 1)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -91,18 +91,65 @@ def render_adaptive_card_element(element, depth=0):
                         render_adaptive_card_element(item, depth + 1)
 
     elif elem_type == 'ProgressBar':
-        # Simple progress bar representation
-        st.markdown('<div style="background: #e0e0e0; height: 4px; border-radius: 2px; margin: 10px 0;"><div style="background: #1976d2; height: 4px; width: 60%; border-radius: 2px;"></div></div>', unsafe_allow_html=True)
+        # Refined progress bar with animated gradient
+        st.markdown('''<div style="
+    background: linear-gradient(90deg, #E7E5E4 0%, #D6D3D1 100%);
+    height: 10px;
+    border-radius: 6px;
+    margin: 1.25rem 0;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+"><div style="
+    background: linear-gradient(90deg, #1D4ED8 0%, #3B82F6 50%, #10B981 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+    height: 10px;
+    width: 60%;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(29, 78, 216, 0.4);
+"></div></div>''', unsafe_allow_html=True)
 
     elif elem_type == 'FactSet':
         facts = element.get('facts', [])
         if facts:
-            # Render facts as a clean table
-            st.markdown('<div style="margin: 10px 0;">', unsafe_allow_html=True)
-            for fact in facts:
+            # Render facts as an editorial table with refined styling
+            st.markdown('''<div style="
+    margin: 1.25rem 0;
+    border: 1.5px solid #E7E5E4;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FAFAF9 100%);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+">''', unsafe_allow_html=True)
+
+            for idx, fact in enumerate(facts):
                 title = fact.get('title', '')
                 value = fact.get('value', '')
-                st.markdown(f'<div style="display: flex; padding: 4px 0; border-bottom: 1px solid #f0f0f0;"><div style="flex: 0 0 40%; font-weight: 500; color: #666;">{title}</div><div style="flex: 1;">{value}</div></div>', unsafe_allow_html=True)
+                bg_color = 'linear-gradient(90deg, #FAFAF9 0%, #FFFFFF 100%)' if idx % 2 == 0 else '#FFFFFF'
+                border_style = '1px solid #E7E5E4' if idx < len(facts) - 1 else 'none'
+                st.markdown(f'''<div style="
+    display: flex;
+    padding: 1rem 1.25rem;
+    background: {bg_color};
+    border-bottom: {border_style};
+    transition: background 0.2s ease;
+">
+    <div style="
+        flex: 0 0 40%;
+        font-weight: 600;
+        color: #57534E;
+        font-size: 0.875rem;
+        font-family: 'Manrope', sans-serif;
+        letter-spacing: 0.01em;
+    ">{title}</div>
+    <div style="
+        flex: 1;
+        color: #292524;
+        font-size: 0.875rem;
+        font-family: 'Manrope', sans-serif;
+    ">{value}</div>
+</div>''', unsafe_allow_html=True)
+
             st.markdown('</div>', unsafe_allow_html=True)
 
     elif elem_type == 'ImageSet':
@@ -150,30 +197,66 @@ def render_adaptive_card_element(element, depth=0):
                     rich_text += inline
 
             if rich_text:
-                st.markdown(f'<div style="margin: 5px 0;">{rich_text}</div>', unsafe_allow_html=True)
+                st.markdown(f'''<div style="
+    margin: 1rem 0;
+    line-height: 1.7;
+    color: #292524;
+    font-size: 1rem;
+    font-family: 'Manrope', sans-serif;
+">{rich_text}</div>''', unsafe_allow_html=True)
 
     elif elem_type == 'Table':
         columns = element.get('columns', [])
         rows = element.get('rows', [])
 
         if columns and rows:
-            # Build HTML table
-            table_html = '<table style="width: 100%; border-collapse: collapse; margin: 10px 0;">'
+            # Build editorial HTML table with refined styling
+            table_html = '''<table style="
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1.25rem 0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+    border: 1.5px solid #E7E5E4;
+    font-family: 'Manrope', sans-serif;
+">'''
 
-            # Header row
-            table_html += '<tr style="border-bottom: 2px solid #ddd; background: #f5f5f5;">'
+            # Header row with sophisticated gradient
+            table_html += '''<tr style="
+    background: linear-gradient(135deg, #F5F5F4 0%, #E7E5E4 100%);
+    border-bottom: 2px solid #D6D3D1;
+">'''
             for col in columns:
                 width = col.get('width', 'auto')
-                table_html += f'<th style="padding: 8px; text-align: left;">'
+                table_html += '''<th style="
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    color: #44403C;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'Manrope', sans-serif;
+">'''
                 table_html += '</th>'
             table_html += '</tr>'
 
-            # Data rows
-            for row in rows:
+            # Data rows with subtle alternating gradient backgrounds
+            for row_idx, row in enumerate(rows):
                 cells = row.get('cells', [])
-                table_html += '<tr style="border-bottom: 1px solid #eee;">'
+                bg_color = 'linear-gradient(90deg, #FFFFFF 0%, #FAFAF9 100%)' if row_idx % 2 == 0 else '#FFFFFF'
+                border_style = '1px solid #E7E5E4' if row_idx < len(rows) - 1 else 'none'
+                table_html += f'<tr style="border-bottom: {border_style}; background: {bg_color}; transition: background 0.2s ease;">'
                 for cell in cells:
-                    table_html += '<td style="padding: 8px;">'
+                    table_html += '''<td style="
+    padding: 0.875rem 1.25rem;
+    color: #292524;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    font-family: 'Manrope', sans-serif;
+">'''
                     # Recursively render cell items
                     items = cell.get('items', [])
                     for item in items:
@@ -192,7 +275,17 @@ def render_adaptive_card_element(element, depth=0):
         label = element.get('label', '') or element.get('placeholder', '')
         input_id = element.get('id', '')
 
-        st.markdown(f'<div style="margin: 10px 0;"><label style="display: block; margin-bottom: 4px; font-weight: 500; color: #666;">{label or input_type}</label>', unsafe_allow_html=True)
+        st.markdown(f'''<div style="margin: 1.25rem 0;">
+    <label style="
+        display: block;
+        margin-bottom: 0.625rem;
+        font-weight: 600;
+        color: #44403C;
+        font-size: 0.875rem;
+        font-family: 'Manrope', sans-serif;
+        letter-spacing: 0.01em;
+    ">{label or input_type}</label>
+''', unsafe_allow_html=True)
 
         if input_type == 'Text':
             is_multiline = element.get('isMultiline', False)
@@ -227,7 +320,7 @@ def render_adaptive_card_element(element, depth=0):
             elif horizontal_alignment and horizontal_alignment.lower() == 'right':
                 align_style = "text-align: right;"
 
-            st.markdown(f'<div style="margin: 10px 0; {align_style}">', unsafe_allow_html=True)
+            st.markdown(f'<div style="margin: 1rem 0; {align_style}">', unsafe_allow_html=True)
             button_html = ""
             for action in actions:
                 title = action.get('title', '')
@@ -237,12 +330,54 @@ def render_adaptive_card_element(element, depth=0):
                     if action_type == 'Action.OpenUrl':
                         url = action.get('url', '')
                         if url:
-                            button_html += f'<a href="{url}" target="_blank" style="text-decoration: none;"><button style="margin: 0 5px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer;">{title}</button></a>'
+                            button_html += f'''<a href="{url}" target="_blank" style="text-decoration: none;">
+                <button style="
+                    margin: 0.375rem;
+                    padding: 0.75rem 1.5rem;
+                    border: 2px solid #1D4ED8;
+                    border-radius: 8px;
+                    background: linear-gradient(135deg, #FFFFFF 0%, #F5F5F4 100%);
+                    color: #1D4ED8;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 0.875rem;
+                    font-family: 'Manrope', sans-serif;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+                    letter-spacing: 0.01em;
+                " onmouseover="this.style.background='linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 100%)'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.1)'; this.style.transform='translateY(-1px)'"
+                   onmouseout="this.style.background='linear-gradient(135deg, #FFFFFF 0%, #F5F5F4 100%)'; this.style.boxShadow='0 2px 4px -1px rgba(0, 0, 0, 0.06)'; this.style.transform='translateY(0)'"
+                >{title}</button>
+            </a>'''
                         else:
-                            button_html += f'<button style="margin: 0 5px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer;">{title}</button>'
+                            button_html += f'''<button style="
+                    margin: 0.375rem;
+                    padding: 0.75rem 1.5rem;
+                    border: 1.5px solid #D6D3D1;
+                    border-radius: 8px;
+                    background: linear-gradient(135deg, #F5F5F4 0%, #E7E5E4 100%);
+                    color: #78716C;
+                    font-weight: 600;
+                    font-size: 0.875rem;
+                    font-family: 'Manrope', sans-serif;
+                    letter-spacing: 0.01em;
+                ">{title}</button>'''
                     else:
-                        # Submit, Execute, etc. - just show as disabled button
-                        button_html += f'<button style="margin: 0 5px; padding: 8px 16px; border: 1px solid #ccc; border-radius: 4px; background: #f5f5f5; cursor: pointer;">{title}</button>'
+                        # Submit, Execute, etc. - show as disabled button
+                        button_html += f'''<button style="
+                    margin: 0.375rem;
+                    padding: 0.75rem 1.5rem;
+                    border: 1.5px solid #D6D3D1;
+                    border-radius: 8px;
+                    background: #E7E5E4;
+                    color: #A8A29E;
+                    font-weight: 600;
+                    font-size: 0.875rem;
+                    font-family: 'Manrope', sans-serif;
+                    cursor: not-allowed;
+                    letter-spacing: 0.01em;
+                    opacity: 0.6;
+                ">{title}</button>'''
             st.markdown(button_html, unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
@@ -278,11 +413,370 @@ st.set_page_config(
     layout="centered",
 )
 
-# Minimal styling
+# Contemporary Editorial Styling - Distinctive & Refined
 st.markdown("""
 <style>
+    /* Import distinctive typography */
+    @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap');
+
+    /* CSS Variables - Contemporary Editorial Design System */
+    :root {
+        /* Primary palette with depth */
+        --primary-blue: #1D4ED8;
+        --primary-blue-dark: #1E40AF;
+        --primary-blue-light: #DBEAFE;
+        --primary-blue-vivid: #3B82F6;
+        --accent-amber: #F59E0B;
+        --accent-emerald: #10B981;
+
+        /* Sophisticated neutrals */
+        --gray-50: #FAFAF9;
+        --gray-100: #F5F5F4;
+        --gray-200: #E7E5E4;
+        --gray-300: #D6D3D1;
+        --gray-400: #A8A29E;
+        --gray-500: #78716C;
+        --gray-600: #57534E;
+        --gray-700: #44403C;
+        --gray-800: #292524;
+        --gray-900: #1C1917;
+        --warm-white: #FFFEFB;
+
+        /* Sophisticated shadows with warmth */
+        --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+        --shadow-sm: 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+        --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+
+        /* Typography scale */
+        --font-display: 'Crimson Pro', Georgia, serif;
+        --font-body: 'Manrope', system-ui, -apple-system, sans-serif;
+    }
+
+    /* Smooth fade-in animation */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+
+    @keyframes shimmer {
+        0% {
+            background-position: -1000px 0;
+        }
+        100% {
+            background-position: 1000px 0;
+        }
+    }
+
+    /* Hide Streamlit header and adjust layout */
     header {visibility: hidden;}
-    .block-container {padding-top: 2rem;}
+    .block-container {
+        padding-top: 2.5rem;
+        padding-bottom: 3rem;
+        max-width: 900px;
+    }
+
+    /* Main app background with subtle texture */
+    .main {
+        background: linear-gradient(135deg, var(--warm-white) 0%, var(--gray-50) 100%);
+        font-family: var(--font-body);
+    }
+
+    /* Title styling - Editorial serif */
+    h1 {
+        font-family: var(--font-display) !important;
+        font-weight: 700 !important;
+        color: var(--gray-900) !important;
+        margin-bottom: 2rem !important;
+        font-size: 2.5rem !important;
+        letter-spacing: -0.025em !important;
+        line-height: 1.2 !important;
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    /* Subtle decorative element under title */
+    h1::after {
+        content: '';
+        display: block;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary-blue) 0%, var(--accent-amber) 100%);
+        margin-top: 1rem;
+        border-radius: 2px;
+    }
+
+    /* User message styling - Clean with depth */
+    .stChatMessage[data-testid="user-message"] {
+        background: linear-gradient(135deg, var(--warm-white) 0%, #FFFFFF 100%) !important;
+        border: 1px solid var(--gray-200) !important;
+        border-radius: 16px !important;
+        padding: 1.25rem 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+        box-shadow: var(--shadow-md) !important;
+        animation: fadeInUp 0.4s ease-out;
+        position: relative;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stChatMessage[data-testid="user-message"]::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, var(--gray-300) 50%, transparent 100%);
+        border-radius: 16px 16px 0 0;
+    }
+
+    .stChatMessage[data-testid="user-message"]:hover {
+        box-shadow: var(--shadow-lg) !important;
+        transform: translateY(-1px);
+    }
+
+    .stChatMessage[data-testid="user-message"] p {
+        color: var(--gray-800) !important;
+        font-size: 1rem !important;
+        line-height: 1.65 !important;
+        margin: 0 !important;
+        font-family: var(--font-body) !important;
+    }
+
+    /* Assistant message styling - Editorial blue with gradient accent */
+    .stChatMessage[data-testid="assistant-message"] {
+        background: linear-gradient(135deg, #EFF6FF 0%, var(--primary-blue-light) 100%) !important;
+        border: 1.5px solid var(--primary-blue-vivid) !important;
+        border-left: 4px solid var(--primary-blue) !important;
+        border-radius: 16px !important;
+        padding: 1.25rem 1.5rem !important;
+        margin-bottom: 1.5rem !important;
+        box-shadow: var(--shadow-lg) !important;
+        animation: fadeInUp 0.5s ease-out;
+        position: relative;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stChatMessage[data-testid="assistant-message"]::after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        right: -1px;
+        bottom: -1px;
+        background: linear-gradient(135deg, var(--primary-blue-vivid) 0%, transparent 30%);
+        border-radius: 16px;
+        opacity: 0.05;
+        pointer-events: none;
+    }
+
+    .stChatMessage[data-testid="assistant-message"]:hover {
+        box-shadow: var(--shadow-xl) !important;
+        transform: translateY(-1px);
+    }
+
+    .stChatMessage[data-testid="assistant-message"] p {
+        color: var(--gray-800) !important;
+        font-size: 1rem !important;
+        line-height: 1.7 !important;
+        margin: 0 !important;
+        font-family: var(--font-body) !important;
+    }
+
+    /* Chat input styling - Refined with focus state */
+    .stChatInput {
+        border: 2px solid var(--gray-300) !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, var(--warm-white) 0%, #FFFFFF 100%) !important;
+        box-shadow: var(--shadow-sm) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    .stChatInput:focus-within {
+        border-color: var(--primary-blue-vivid) !important;
+        box-shadow: 0 0 0 4px var(--primary-blue-light), var(--shadow-md) !important;
+        transform: translateY(-1px);
+    }
+
+    .stChatInput textarea {
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+        color: var(--gray-800) !important;
+        font-family: var(--font-body) !important;
+    }
+
+    .stChatInput textarea::placeholder {
+        color: var(--gray-400) !important;
+        font-style: italic;
+    }
+
+    /* Button styling - New Chat button with gradient hover */
+    .stButton > button {
+        background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-50) 100%) !important;
+        color: var(--gray-700) !important;
+        border: 1.5px solid var(--gray-300) !important;
+        border-radius: 10px !important;
+        padding: 0.625rem 1.25rem !important;
+        font-weight: 600 !important;
+        font-size: 0.875rem !important;
+        font-family: var(--font-body) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: var(--shadow-sm) !important;
+        letter-spacing: 0.01em !important;
+    }
+
+    .stButton > button:hover {
+        background: linear-gradient(135deg, var(--gray-200) 0%, var(--gray-100) 100%) !important;
+        border-color: var(--primary-blue) !important;
+        color: var(--primary-blue-dark) !important;
+        box-shadow: var(--shadow-md) !important;
+        transform: translateY(-1px);
+    }
+
+    .stButton > button:active {
+        transform: translateY(0);
+    }
+
+    /* Status/thinking container - Subtle animation */
+    .stStatus {
+        background: linear-gradient(135deg, var(--warm-white) 0%, #FFFFFF 100%) !important;
+        border: 1.5px solid var(--gray-200) !important;
+        border-radius: 12px !important;
+        box-shadow: var(--shadow-md) !important;
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    .stStatus > div {
+        color: var(--gray-700) !important;
+        font-size: 0.875rem !important;
+        font-weight: 600 !important;
+        font-family: var(--font-body) !important;
+    }
+
+    /* Animated thinking indicator */
+    .stStatus[data-state="running"]::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--primary-blue);
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    /* Expander (for Adaptive Cards and JSON) - Refined */
+    .streamlit-expanderHeader {
+        background: linear-gradient(135deg, var(--gray-50) 0%, var(--warm-white) 100%) !important;
+        border: 1.5px solid var(--gray-200) !important;
+        border-radius: 10px !important;
+        padding: 0.875rem 1.25rem !important;
+        font-weight: 600 !important;
+        font-size: 0.875rem !important;
+        color: var(--gray-700) !important;
+        font-family: var(--font-body) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    .streamlit-expanderHeader:hover {
+        background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-50) 100%) !important;
+        border-color: var(--primary-blue-vivid) !important;
+        color: var(--primary-blue-dark) !important;
+        box-shadow: var(--shadow-sm) !important;
+    }
+
+    .streamlit-expanderContent {
+        border: 1.5px solid var(--gray-200) !important;
+        border-top: none !important;
+        background: linear-gradient(180deg, var(--warm-white) 0%, #FFFFFF 100%) !important;
+        padding: 1.25rem !important;
+        border-radius: 0 0 10px 10px !important;
+    }
+
+    /* Caption text (status messages, suggestions) */
+    .caption {
+        color: var(--gray-500) !important;
+        font-size: 0.8125rem !important;
+        font-style: italic !important;
+        font-family: var(--font-body) !important;
+    }
+
+    /* Code blocks - Monospace with refined styling */
+    code {
+        background: linear-gradient(135deg, var(--gray-100) 0%, var(--gray-50) 100%) !important;
+        color: var(--gray-800) !important;
+        padding: 0.2rem 0.4rem !important;
+        border-radius: 4px !important;
+        font-size: 0.875rem !important;
+        border: 1px solid var(--gray-200) !important;
+        font-family: 'SF Mono', Monaco, Consolas, monospace !important;
+    }
+
+    pre {
+        background: linear-gradient(135deg, var(--gray-900) 0%, #1a1816 100%) !important;
+        color: var(--gray-100) !important;
+        padding: 1.25rem !important;
+        border-radius: 10px !important;
+        overflow-x: auto !important;
+        box-shadow: var(--shadow-lg) !important;
+        border: 1px solid var(--gray-800) !important;
+    }
+
+    pre code {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        color: var(--gray-100) !important;
+    }
+
+    /* Info/Warning/Error messages - Enhanced with depth */
+    .stAlert {
+        border-radius: 12px !important;
+        border-left-width: 4px !important;
+        padding: 1.25rem 1.5rem !important;
+        box-shadow: var(--shadow-md) !important;
+        animation: fadeInUp 0.4s ease-out;
+    }
+
+    /* Spinner - Refined animation */
+    .stSpinner > div {
+        border-top-color: var(--primary-blue-vivid) !important;
+        border-right-color: var(--primary-blue-light) !important;
+    }
+
+    /* Citation links - Distinctive with hover effect */
+    a[target="_blank"] sup {
+        color: var(--primary-blue) !important;
+        font-weight: 700 !important;
+        text-decoration: none !important;
+        background: var(--primary-blue-light);
+        padding: 0.125rem 0.25rem;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+    }
+
+    a[target="_blank"]:hover sup {
+        color: var(--primary-blue-dark) !important;
+        background: var(--primary-blue-vivid) !important;
+        color: white !important;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -316,7 +810,7 @@ def main():
     # New Chat button in header area
     col1, col2 = st.columns([6, 1])
     with col2:
-        if st.button("🗑️ New", help="Start a new conversation"):
+        if st.button("🔄 New Chat", help="Start a new conversation"):
             st.session_state.messages = []
             st.session_state.client = None
             st.rerun()
@@ -379,7 +873,26 @@ def main():
                                 card_type = card.get('type', '')
                                 if card_type == 'AdaptiveCard':
                                     # Render card with a styled container
-                                    st.markdown('<div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">', unsafe_allow_html=True)
+                                    st.markdown('''<div style="
+    border: 2px solid #E7E5E4;
+    border-radius: 14px;
+    padding: 1.75rem;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FAFAF9 100%);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    margin: 1rem 0;
+    position: relative;
+    animation: fadeInUp 0.5s ease-out;
+">
+<div style="
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #1D4ED8 0%, #3B82F6 50%, #10B981 100%);
+    border-radius: 14px 14px 0 0;
+"></div>
+''', unsafe_allow_html=True)
 
                                     body = card.get('body', [])
                                     for element in body:
@@ -423,16 +936,45 @@ def main():
                 try:
                     async for msg_type, msg_content in st.session_state.client.send_message(prompt):
                         if msg_type == 'status':
-                            status_placeholder.caption(f"_{msg_content}_")
+                            status_placeholder.markdown(f'''<p class="caption" style="
+    color: #78716C;
+    font-size: 0.875rem;
+    font-style: italic;
+    margin: 0.75rem 0;
+    font-family: 'Crimson Pro', serif;
+    animation: pulse 2s ease-in-out infinite;
+">💭 {msg_content}</p>''', unsafe_allow_html=True)
                         elif msg_type == 'thought':
                             # Collect reasoning/chain-of-thought
                             thoughts.append(msg_content)
                             # Update thinking display
-                            with thinking_container.status("Thinking...", expanded=False) as status:
+                            with thinking_container.status("💡 Thinking...", expanded=False) as status:
                                 for t in thoughts:
                                     task = t.get('task', 'Processing')
                                     text = t.get('text', '')
-                                    st.write(f"**{task}**: {text}")
+                                    st.markdown(f'''<div style="
+    margin: 0.75rem 0;
+    padding: 0.875rem 1rem;
+    background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    border-left: 4px solid #1D4ED8;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+">
+    <strong style="
+        color: #1E40AF;
+        font-size: 0.875rem;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    ">{task}</strong>
+    <p style="
+        color: #44403C;
+        font-size: 0.875rem;
+        margin: 0.5rem 0 0 0;
+        line-height: 1.65;
+        font-family: 'Manrope', sans-serif;
+    ">{text}</p>
+</div>''', unsafe_allow_html=True)
                         elif msg_type == 'search_result':
                             # Collect search results (contain URLs)
                             search_results.append(msg_content)
@@ -477,11 +1019,33 @@ def main():
 
                     # Finalize thinking display
                     if thoughts:
-                        with thinking_container.status("Reasoning", expanded=False, state="complete") as status:
+                        with thinking_container.status("💡 Reasoning", expanded=False, state="complete") as status:
                             for t in thoughts:
                                 task = t.get('task', 'Processing')
                                 text = t.get('text', '')
-                                st.write(f"**{task}**: {text}")
+                                st.markdown(f'''<div style="
+    margin: 0.75rem 0;
+    padding: 0.875rem 1rem;
+    background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+    border-left: 4px solid #10B981;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+">
+    <strong style="
+        color: #065F46;
+        font-size: 0.875rem;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    ">{task}</strong>
+    <p style="
+        color: #44403C;
+        font-size: 0.875rem;
+        margin: 0.5rem 0 0 0;
+        line-height: 1.65;
+        font-family: 'Manrope', sans-serif;
+    ">{text}</p>
+</div>''', unsafe_allow_html=True)
 
                     # Clear status when done
                     status_placeholder.empty()
@@ -565,7 +1129,30 @@ def main():
 
             # Show suggestions if any
             if suggestions:
-                st.caption(f"**Suggestions:** {suggestions}")
+                st.markdown(f'''<div style="
+    margin-top: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border-left: 4px solid #F59E0B;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+    animation: fadeInUp 0.5s ease-out;
+">
+    <strong style="
+        color: #92400E;
+        font-size: 0.9375rem;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    ">💡 Suggestions:</strong>
+    <span style="
+        color: #78350F;
+        font-size: 0.9375rem;
+        margin-left: 0.5rem;
+        font-family: 'Manrope', sans-serif;
+        line-height: 1.65;
+    ">{suggestions}</span>
+</div>''', unsafe_allow_html=True)
 
         # Store response with HTML citations and adaptive cards for history
         st.session_state.messages.append({
