@@ -1,12 +1,20 @@
 # Streamlit Copilot Studio Client
 
-Web chat interface for Microsoft Copilot Studio agents.
+Web chat interface for Microsoft Copilot Studio agents using Azure Entra ID authentication and M365 Agents SDK.
 
-## Prerequisites
+## Quick Start
 
-- Python 3.9+
-- A published Agent in [Copilot Studio](https://copilotstudio.microsoft.com)
-- An Azure Entra ID app registration
+**Prerequisites:** Python 3.9+, UV package manager, published Copilot Studio agent, Azure app registration
+
+```bash
+# Install dependencies
+uv sync
+
+# Run the app (IMPORTANT: use 'streamlit run', not just 'uv run app.py')
+uv run streamlit run app.py
+```
+
+Open http://localhost:8501 and sign in with Microsoft.
 
 ## Azure App Setup
 
@@ -26,11 +34,18 @@ Edit `.env` with your values:
 - `AZURE_TENANT_ID` - Your Azure tenant ID
 - `AZURE_APP_CLIENT_ID` - Your app registration client ID
 
-## Run
+Optional:
+- `DEBUG_MODE` - Set to `true` to write activity debug JSON (default: `false`)
+- `DEBUG_FILE` - Custom path for debug output (default: system temp directory)
+
+## Development
 
 ```bash
-pip install -r requirements.txt
-streamlit run app.py
+# Run with debug logging
+uv run streamlit run app.py --logger.level=debug
+
+# View debug activities (when DEBUG_MODE=true in .env)
+tail -f "$(python3 -c 'import tempfile; print(tempfile.gettempdir())')/activities_debug.json"
 ```
 
-Open http://localhost:8501 and sign in with Microsoft.
+See CLAUDE.md for full troubleshooting guide, architecture details, and common issues.
